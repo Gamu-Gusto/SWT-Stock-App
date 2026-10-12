@@ -116,7 +116,9 @@ jobs:
           curl -fsS -o /dev/null -w "login %{http_code}\n" http://127.0.0.1:8080/login
           curl -fsS http://127.0.0.1:8080/branding
           code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/.env); echo ".env -> $code"; test "$code" = "403" -o "$code" = "404"
-          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/composer.json); echo "composer.json -> $code"; test "$code" = "404"
+          # Files outside public/ must never be served (unknown paths fall through to the app shell instead).
+          ! curl -s http://127.0.0.1:8080/composer.json | grep -q '"laravel/framework"'
+          ! curl -s http://127.0.0.1:8080/../.env.example | grep -q 'APP_KEY='
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/products)" = "401"
 
       - name: Report container log

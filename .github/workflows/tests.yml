@@ -50,7 +50,7 @@ jobs:
 
       - name: Run tests on SQLite
         if: matrix.db == 'sqlite'
-        run: php vendor/bin/phpunit
+        run: php vendor/bin/phpunit --log-junit junit.xml
 
       - name: Run tests on MySQL (incl. concurrency)
         if: matrix.db == 'mysql'
@@ -59,7 +59,7 @@ jobs:
           DB_PORT: 3306
           DB_USERNAME: root
           DB_PASSWORD: ci-root
-        run: php vendor/bin/phpunit -c phpunit.mysql.xml
+        run: php vendor/bin/phpunit -c phpunit.mysql.xml --log-junit junit.xml
 
       - name: Run tests on PostgreSQL (incl. concurrency)
         if: matrix.db == 'pgsql'
@@ -68,7 +68,11 @@ jobs:
           DB_PORT: 5432
           DB_USERNAME: postgres
           DB_PASSWORD: ci-root
-        run: php vendor/bin/phpunit -c phpunit.pgsql.xml
+        run: php vendor/bin/phpunit -c phpunit.pgsql.xml --log-junit junit.xml
+
+      - name: Report failing tests
+        if: failure()
+        run: python3 .github/scripts/annotate.py junit junit.xml
 
   frontend:
     name: Frontend type check and build
@@ -113,3 +117,7 @@ jobs:
           curl -fsS http://127.0.0.1:8080/branding
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/.env)" != "200"
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/products)" = "401"
+
+      - name: Report container log
+        if: failure()
+        run: docker logs swt 2>&1 | tail -n 80 | python3 .github/scripts/annotate.py text "Container log"

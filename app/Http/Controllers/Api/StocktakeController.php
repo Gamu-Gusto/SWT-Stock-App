@@ -68,10 +68,10 @@ class StocktakeController extends Controller
             ->when($request->input('filter') === 'variance' && $showExpected, fn ($q) => $q->whereNotNull('variance')->where('variance', '!=', 0))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q').'%';
-                $q->where(fn ($w) => $w->whereHas('product', fn ($p) => $p->where('sku', 'like', $term)->orWhere('name', 'like', $term)
-                    ->orWhereHas('brand', fn ($b) => $b->where('name', 'like', $term))
-                    ->orWhereHas('spec', fn ($s) => $s->where('size_display', 'like', $term)))
-                    ->orWhereHas('unit', fn ($u) => $u->where('unit_code', 'like', $term)));
+                $q->where(fn ($w) => $w->whereHas('product', fn ($p) => $p->whereLike('sku', $term)->orWhereLike('name', $term)
+                    ->orWhereHas('brand', fn ($b) => $b->whereLike('name', $term))
+                    ->orWhereHas('spec', fn ($s) => $s->whereLike('size_display', $term)))
+                    ->orWhereHas('unit', fn ($u) => $u->whereLike('unit_code', $term)));
             })
             ->join('inventory_locations as l', 'l.id', '=', 'stocktake_items.location_id')
             ->select('stocktake_items.*')

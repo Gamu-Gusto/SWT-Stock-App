@@ -17,8 +17,8 @@ class SupplierController extends Controller
     public function index(Request $request): JsonResponse
     {
         $q = Supplier::query()
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->where('company_name', 'like', '%'.$request->string('q').'%')
-                ->orWhere('contact_person', 'like', '%'.$request->string('q').'%')))
+            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->whereLike('company_name', '%'.$request->string('q').'%')
+                ->orWhereLike('contact_person', '%'.$request->string('q').'%')))
             ->when($request->input('status', 'active') !== 'all', fn ($q) => $q->where('status', $request->input('status', 'active')))
             ->withCount(['receipts' => fn ($q) => $q->where('status', 'posted')])
             ->withMax(['receipts' => fn ($q) => $q->where('status', 'posted')], 'delivery_date')
@@ -38,7 +38,7 @@ class SupplierController extends Controller
             ->join('products as p', 'p.id', '=', 'i.product_id')->leftJoin('brands as b', 'b.id', '=', 'p.brand_id')
             ->leftJoin('tyre_specs as s', 's.product_id', '=', 'p.id')
             ->where('r.supplier_id', $supplier->id)->where('r.status', 'posted')
-            ->selectRaw('p.id, p.sku, b.name as brand, p.name as model, s.size_display as size, p.`condition` as `condition`, SUM(i.quantity) as qty, MAX(r.delivery_date) as last_delivery'
+            ->selectRaw('p.id, p.sku, b.name as brand, p.name as model, s.size_display as size, p.condition as item_condition, SUM(i.quantity) as qty, MAX(r.delivery_date) as last_delivery'
                 .($showCost ? ', SUM(i.line_total) as total_cost, MAX(i.unit_cost) as last_unit_cost' : ''))
             ->groupBy('p.id', 'p.sku', 'b.name', 'p.name', 's.size_display', 'p.condition')->orderByDesc('qty')->get();
 

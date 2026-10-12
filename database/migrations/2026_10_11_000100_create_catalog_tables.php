@@ -190,8 +190,14 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        if (in_array(DB::getDriverName(), ['mysql', 'mariadb'])) {
+        $driver = DB::getDriverName();
+        if (in_array($driver, ['mysql', 'mariadb', 'pgsql'], true)) {
             DB::statement('ALTER TABLE products ADD CONSTRAINT chk_products_reserved CHECK (qty_reserved <= qty_on_hand)');
+        }
+        if ($driver === 'pgsql') {
+            // PostgreSQL has no UNSIGNED integers: enforce non-negative stock explicitly.
+            DB::statement('ALTER TABLE products ADD CONSTRAINT chk_products_qty_nonnegative CHECK (qty_on_hand >= 0 AND qty_reserved >= 0 AND qty_unsellable >= 0)');
+            DB::statement('ALTER TABLE stock_balances ADD CONSTRAINT chk_stock_balances_nonnegative CHECK (qty_on_hand >= 0)');
         }
     }
 

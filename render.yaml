@@ -1,0 +1,78 @@
+# Render Blueprint – Super Wheels and Tyres Stock (TEST deployment)
+#
+# Creates: 1 Docker web service (PHP 8.3 + Apache, built from ./Dockerfile)
+#          1 PostgreSQL database (free plan)
+# Deploy:  Render Dashboard → New → Blueprint → select this repository → Apply.
+# Guide:   docs/DEPLOYMENT_RENDER.md
+#
+# Free-plan limits (fine for testing, NOT for live trading):
+#  - the web service sleeps after 15 minutes without traffic (first visit then takes ~1 minute);
+#  - uploaded photos/attachments are lost whenever the service restarts or redeploys;
+#  - the free database is 1 GB, has no backups and is deleted 30 days after creation.
+
+services:
+  - type: web
+    name: swt-stock
+    runtime: docker
+    plan: free
+    region: frankfurt            # closest Render region to South Africa
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    autoDeployTrigger: commit    # redeploy on every push to the connected branch
+    envVars:
+      - key: APP_NAME
+        value: Super Wheels Stock
+      - key: APP_ENV
+        value: staging           # a test deployment; use "production" for live data
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true      # start script adds Laravel's "base64:" prefix
+      - key: APP_TIMEZONE
+        value: Africa/Johannesburg
+      # One-time owner setup at https://<your-service>.onrender.com/setup
+      # Copy this value from Render → swt-stock → Environment. The page locks itself once an owner exists.
+      - key: SETUP_TOKEN
+        generateValue: true
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        fromDatabase:
+          name: swt-stock-db
+          property: connectionString
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_LIFETIME
+        value: "120"
+      - key: SESSION_ENCRYPT
+        value: "true"
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: LOG_CHANNEL
+        value: stderr            # visible under Render → Logs
+      - key: LOG_LEVEL
+        value: warning
+      - key: MAIL_MAILER
+        value: log               # e-mail disabled; set SMTP variables to enable
+      - key: TRUSTED_PROXIES
+        value: "*"               # Render terminates HTTPS in front of the container
+      # Set to "true" to load FICTIONAL demo data (demo accounts use a published password –
+      # only for private testing). Ignored when APP_ENV=production.
+      - key: LOAD_DEMO_DATA
+        value: "false"
+
+databases:
+  - name: swt-stock-db
+    plan: free
+    region: frankfurt
+    databaseName: swt_stock
+    user: swt
+    postgresMajorVersion: "17"
+    ipAllowList: []              # no access from the internet; only Render services can connect

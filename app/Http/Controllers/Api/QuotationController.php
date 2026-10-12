@@ -24,8 +24,8 @@ class QuotationController extends Controller
         $q = Quotation::query()->with('user:id,name')->withCount('items')
             ->when(! $request->user()->hasPermission('sales.view_all'), fn ($q) => $q->where('user_id', $request->user()->id))
             ->when($request->filled('status') && $request->input('status') !== 'all', fn ($q) => $q->where('status', $request->input('status')))
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->where('quotation_no', 'like', '%'.$request->string('q').'%')
-                ->orWhere('customer_name', 'like', '%'.$request->string('q').'%')->orWhere('customer_phone', 'like', '%'.$request->string('q').'%')))
+            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->whereLike('quotation_no', '%'.$request->string('q').'%')
+                ->orWhereLike('customer_name', '%'.$request->string('q').'%')->orWhereLike('customer_phone', '%'.$request->string('q').'%')))
             ->orderByDesc('id');
 
         return response()->json($q->paginate(25));

@@ -33,7 +33,7 @@ class StockOperationsController extends Controller
             ->when($request->filled('product_id'), fn ($q) => $q->where('product_id', $request->integer('product_id')))
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->integer('location_id')))
             ->when($request->filled('user_id'), fn ($q) => $q->where('user_id', $request->integer('user_id')))
-            ->when($request->filled('reference'), fn ($q) => $q->where('reference_no', 'like', '%'.$request->string('reference').'%'))
+            ->when($request->filled('reference'), fn ($q) => $q->whereLike('reference_no', '%'.$request->string('reference').'%'))
             ->when($request->filled('direction'), fn ($q) => $q->where('quantity_change', $request->input('direction') === 'in' ? '>' : '<', 0))
             ->when($request->filled('date_from'), fn ($q) => $q->where('created_at', '>=', $request->date('date_from')->startOfDay()))
             ->when($request->filled('date_to'), fn ($q) => $q->where('created_at', '<=', $request->date('date_to')->endOfDay()))

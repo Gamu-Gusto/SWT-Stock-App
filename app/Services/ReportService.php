@@ -78,7 +78,7 @@ class ReportService
     protected function reportCurrentStock(array $f, bool $financial): array
     {
         $rows = $this->productBase($f)
-            ->selectRaw('products.id, products.sku, brands.name as brand, COALESCE(tyre_models.name, products.name) as model, tyre_specs.size_display as size, products.`condition` as `condition`,
+            ->selectRaw('products.id, products.sku, brands.name as brand, COALESCE(tyre_models.name, products.name) as model, tyre_specs.size_display as size, products.condition as item_condition,
                 (products.qty_on_hand + products.qty_unsellable) as physical, products.qty_reserved as reserved, (products.qty_on_hand - products.qty_reserved) as available,
                 products.selling_price, products.cost_price, products.min_stock_level')
             ->orderBy('brands.name')->orderBy('tyre_specs.size_key')->get();
@@ -87,7 +87,7 @@ class ReportService
 
         $out = $rows->map(function ($r) use ($locations, $values, $financial) {
             $row = [
-                'sku' => $r->sku, 'brand' => $r->brand, 'model' => $r->model, 'size' => $r->size, 'condition' => ucfirst($r->condition),
+                'sku' => $r->sku, 'brand' => $r->brand, 'model' => $r->model, 'size' => $r->size, 'condition' => ucfirst($r->item_condition),
                 'physical' => (int) $r->physical, 'reserved' => (int) $r->reserved, 'available' => max(0, (int) $r->available),
                 'selling_price' => Money::normalize($r->selling_price), 'locations' => $locations[$r->id] ?? '',
             ];
@@ -121,8 +121,8 @@ class ReportService
         $rows = $this->productBase($f)
             ->selectRaw('tyre_specs.size_display as size, tyre_specs.size_key, COUNT(*) as variants, SUM(products.qty_on_hand + products.qty_unsellable) as physical,
                 SUM(products.qty_reserved) as reserved, SUM(products.qty_on_hand - products.qty_reserved) as available,
-                SUM(CASE WHEN products.`condition` = \'new\' THEN products.qty_on_hand - products.qty_reserved ELSE 0 END) as new_available,
-                SUM(CASE WHEN products.`condition` = \'used\' THEN products.qty_on_hand - products.qty_reserved ELSE 0 END) as used_available')
+                SUM(CASE WHEN products.condition = \'new\' THEN products.qty_on_hand - products.qty_reserved ELSE 0 END) as new_available,
+                SUM(CASE WHEN products.condition = \'used\' THEN products.qty_on_hand - products.qty_reserved ELSE 0 END) as used_available')
             ->groupBy('tyre_specs.size_display', 'tyre_specs.size_key')->orderBy('tyre_specs.size_key')->get()
             ->map(fn ($r) => ['size' => $r->size, 'variants' => (int) $r->variants, 'physical' => (int) $r->physical, 'reserved' => (int) $r->reserved,
                 'available' => (int) $r->available, 'new_available' => (int) $r->new_available, 'used_available' => (int) $r->used_available])->all();
@@ -168,11 +168,11 @@ class ReportService
             ? $q->where('products.min_stock_level', '>', 0)->whereRaw('products.qty_on_hand - products.qty_reserved > 0')->whereRaw('products.qty_on_hand - products.qty_reserved <= products.min_stock_level')
             : $q->whereRaw('products.qty_on_hand - products.qty_reserved <= 0');
         $rows = $q->leftJoin('suppliers', 'suppliers.id', '=', 'products.default_supplier_id')
-            ->selectRaw('products.sku, brands.name as brand, COALESCE(tyre_models.name, products.name) as model, tyre_specs.size_display as size, products.`condition` as `condition`,
+            ->selectRaw('products.sku, brands.name as brand, COALESCE(tyre_models.name, products.name) as model, tyre_specs.size_display as size, products.condition as item_condition,
                 (products.qty_on_hand + products.qty_unsellable) as physical, products.qty_reserved as reserved, (products.qty_on_hand - products.qty_reserved) as available,
                 products.min_stock_level, products.reorder_qty, suppliers.company_name as supplier, products.last_sold_at')
             ->orderBy('brands.name')->orderBy('tyre_specs.size_key')->get()
-            ->map(fn ($r) => ['sku' => $r->sku, 'brand' => $r->brand, 'model' => $r->model, 'size' => $r->size, 'condition' => ucfirst($r->condition),
+            ->map(fn ($r) => ['sku' => $r->sku, 'brand' => $r->brand, 'model' => $r->model, 'size' => $r->size, 'condition' => ucfirst($r->item_condition),
                 'physical' => (int) $r->physical, 'reserved' => (int) $r->reserved, 'available' => max(0, (int) $r->available),
                 'min_stock_level' => (int) $r->min_stock_level, 'reorder_qty' => (int) $r->reorder_qty, 'supplier' => $r->supplier, 'last_sold_at' => $r->last_sold_at])->all();
 
@@ -206,12 +206,12 @@ class ReportService
         if (! empty($f['movement_type'])) {
             $q->where('m.type', $f['movement_type']);
         }
-        $rows = $q->selectRaw('m.id, m.created_at, m.type, products.sku, brands.name as brand, tyre_specs.size_display as size, products.`condition` as `condition`, tu.unit_code,
+        $rows = $q->selectRaw('m.id, m.created_at, m.type, products.sku, brands.name as brand, tyre_specs.size_display as size, products.condition as item_condition, tu.unit_code,
                 l.name as location, m.previous_qty, m.quantity_change, m.resulting_qty, m.reference_no, m.reason, u.name as employee, m.total_cost')
             ->orderBy('m.created_at')->orderBy('m.id')->limit(20000)->get()
             ->map(function ($r) use ($financial) {
                 $row = ['movement' => 'MV-'.str_pad((string) $r->id, 7, '0', STR_PAD_LEFT), 'date' => $r->created_at, 'type' => StockMovement::TYPES[$r->type] ?? $r->type,
-                    'sku' => $r->sku, 'brand' => $r->brand, 'size' => $r->size, 'condition' => ucfirst($r->condition), 'unit_code' => $r->unit_code,
+                    'sku' => $r->sku, 'brand' => $r->brand, 'size' => $r->size, 'condition' => ucfirst($r->item_condition), 'unit_code' => $r->unit_code,
                     'location' => $r->location, 'previous_qty' => (int) $r->previous_qty, 'change' => (int) $r->quantity_change, 'resulting_qty' => (int) $r->resulting_qty,
                     'reference' => $r->reference_no, 'reason' => $r->reason, 'employee' => $r->employee];
                 if ($financial) {
@@ -250,7 +250,7 @@ class ReportService
             'employee' => ['u.name', 'Employee', 'text'],
             'brand' => ['sale_items.brand_name', 'Brand', 'text'],
             'size' => ['sale_items.size_display', 'Size', 'text'],
-            'condition' => ['sale_items.`condition`', 'Condition', 'text'],
+            'condition' => ['sale_items.condition', 'Condition', 'text'],
         ];
         [$expr, $label, $type] = $groups[$groupBy] ?? $groups['date'];
 
@@ -339,11 +339,11 @@ class ReportService
         if (! empty($f['stocktake_id'])) {
             $q->where('s.id', $f['stocktake_id']);
         }
-        $rows = $q->selectRaw('s.stocktake_no, s.status as stocktake_status, products.sku, brands.name as brand, tyre_specs.size_display as size, products.`condition` as `condition`, tu.unit_code,
+        $rows = $q->selectRaw('s.stocktake_no, s.status as stocktake_status, products.sku, brands.name as brand, tyre_specs.size_display as size, products.condition as item_condition, tu.unit_code,
                 l.name as location, i.system_qty_at_count, i.counted_qty, i.variance, i.cost_impact, i.status, i.adjustment_reason, c.name as counted_by, a.name as approved_by, s.approved_at, s.adjustment_reference')
             ->orderBy('s.id')->orderBy('i.id')->get()
             ->map(function ($r) use ($financial) {
-                $row = ['stocktake' => $r->stocktake_no, 'sku' => $r->sku, 'brand' => $r->brand, 'size' => $r->size, 'condition' => ucfirst($r->condition),
+                $row = ['stocktake' => $r->stocktake_no, 'sku' => $r->sku, 'brand' => $r->brand, 'size' => $r->size, 'condition' => ucfirst($r->item_condition),
                     'unit_code' => $r->unit_code, 'location' => $r->location, 'system_qty' => (int) $r->system_qty_at_count, 'physical_qty' => (int) $r->counted_qty,
                     'difference' => (int) $r->variance, 'result' => (int) $r->variance < 0 ? 'Shortage' : 'Excess', 'decision' => ucfirst(str_replace('_', ' ', $r->status)),
                     'reason' => $r->adjustment_reason, 'counted_by' => $r->counted_by, 'approved_by' => $r->approved_by, 'approved_at' => $r->approved_at,
@@ -384,13 +384,13 @@ class ReportService
     {
         $values = $this->valuation->byProduct();
         $rows = $this->productBase($f)->whereIn('products.id', array_keys($values) ?: [0])
-            ->selectRaw('products.id, products.sku, brands.name as brand, COALESCE(tyre_models.name, products.name) as model, tyre_specs.size_display as size, products.`condition` as `condition`, products.tracking, products.selling_price')
+            ->selectRaw('products.id, products.sku, brands.name as brand, COALESCE(tyre_models.name, products.name) as model, tyre_specs.size_display as size, products.condition as item_condition, products.tracking, products.selling_price')
             ->orderBy('brands.name')->orderBy('tyre_specs.size_key')->get()
             ->map(function ($r) use ($values) {
                 $qty = $values[$r->id]['qty'];
                 $value = $values[$r->id]['value'];
 
-                return ['sku' => $r->sku, 'brand' => $r->brand, 'model' => $r->model, 'size' => $r->size, 'condition' => ucfirst($r->condition),
+                return ['sku' => $r->sku, 'brand' => $r->brand, 'model' => $r->model, 'size' => $r->size, 'condition' => ucfirst($r->item_condition),
                     'method' => $r->tracking === 'unit' ? 'Specific unit cost' : 'FIFO', 'quantity' => $qty,
                     'average_cost' => $qty ? Money::fromCents(Money::divRound(Money::toCents($value), $qty)) : '0.00', 'cost_value' => $value,
                     'retail_value' => $r->tracking === 'unit' ? null : Money::mul($r->selling_price, $qty)];
@@ -416,13 +416,13 @@ class ReportService
         $rows = $this->productBase($f)
             ->whereRaw('(products.qty_on_hand + products.qty_unsellable) > 0')
             ->where(fn ($q) => $q->whereNull('products.last_sold_at')->orWhere('products.last_sold_at', '<', $cutoff))
-            ->selectRaw('products.id, products.sku, brands.name as brand, COALESCE(tyre_models.name, products.name) as model, tyre_specs.size_display as size, products.`condition` as `condition`,
+            ->selectRaw('products.id, products.sku, brands.name as brand, COALESCE(tyre_models.name, products.name) as model, tyre_specs.size_display as size, products.condition as item_condition,
                 (products.qty_on_hand + products.qty_unsellable) as physical, products.last_sold_at, products.last_received_at, products.created_at')
             ->orderByRaw('COALESCE(products.last_sold_at, products.created_at)')->get();
         $values = $financial ? $this->valuation->byProduct() : [];
         $out = $rows->map(function ($r) use ($values, $financial) {
             $since = CarbonImmutable::parse($r->last_sold_at ?? $r->created_at);
-            $row = ['sku' => $r->sku, 'brand' => $r->brand, 'model' => $r->model, 'size' => $r->size, 'condition' => ucfirst($r->condition),
+            $row = ['sku' => $r->sku, 'brand' => $r->brand, 'model' => $r->model, 'size' => $r->size, 'condition' => ucfirst($r->item_condition),
                 'physical' => (int) $r->physical, 'last_sold_at' => $r->last_sold_at, 'last_received_at' => $r->last_received_at,
                 'days_without_sale' => (int) $since->diffInDays(now())];
             if ($financial) {

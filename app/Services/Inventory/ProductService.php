@@ -152,7 +152,9 @@ class ProductService
         $brand = Brand::query()->findOrFail($data['brand_id']);
         $modelId = $data['tyre_model_id'] ?? null;
         if (! $modelId && ! empty($data['model_name'])) {
-            $modelId = TyreModel::query()->firstOrCreate(['brand_id' => $brand->id, 'name' => trim($data['model_name'])])->id;
+            $name = trim($data['model_name']);
+            $modelId = TyreModel::query()->where('brand_id', $brand->id)->whereRaw('LOWER(name) = ?', [Str::lower($name)])->value('id')
+                ?? TyreModel::query()->create(['brand_id' => $brand->id, 'name' => $name])->id;
         }
         $model = $modelId ? TyreModel::query()->where('brand_id', $brand->id)->findOrFail($modelId) : null;
 

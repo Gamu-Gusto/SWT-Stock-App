@@ -289,8 +289,12 @@ class ImportService
                 $d = $row['data'];
                 $product = $row['existing_product_id'] ? Product::query()->find($row['existing_product_id']) : ($createdByKey[$row['key']] ?? null);
                 if (! $product) {
-                    $brand = Brand::query()->firstOrCreate(['name' => $d['brand']], ['is_active' => true]);
-                    $supplierId = $d['supplier'] !== '' ? Supplier::query()->firstOrCreate(['company_name' => $d['supplier']], ['status' => 'active'])->id : null;
+                    // Case-insensitive matching (PostgreSQL compares text case-sensitively).
+                    $brand = Brand::query()->whereRaw('LOWER(name) = ?', [Str::lower($d['brand'])])->first()
+                        ?? Brand::query()->create(['name' => $d['brand'], 'is_active' => true]);
+                    $supplierId = $d['supplier'] === '' ? null
+                        : (Supplier::query()->whereRaw('LOWER(company_name) = ?', [Str::lower($d['supplier'])])->value('id')
+                            ?? Supplier::query()->create(['company_name' => $d['supplier'], 'status' => 'active'])->id);
                     $product = $this->products->create([
                         'brand_id' => $brand->id,
                         'model_name' => $d['model'] !== '' ? $d['model'] : null,
@@ -410,7 +414,7 @@ class ImportService
 
     protected function findExisting(Brand $brand, string $model, string $sizeKey, string $load, string $speed, string $condition): ?Product
     {
-        $modelId = $model !== '' ? TyreModel::query()->where('brand_id', $brand->id)->where('name', $model)->value('id') : null;
+        $modelId = $model !== '' ? TyreModel::query()->where('brand_id', $brand->id)->whereRaw('LOWER(name) = ?', [Str::lower($model)])->value('id') : null;
 
         return Product::query()->where('brand_id', $brand->id)->where('condition', $condition)
             ->when($model !== '', fn ($q) => $modelId ? $q->where('tyre_model_id', $modelId) : $q->whereRaw('1 = 0'))

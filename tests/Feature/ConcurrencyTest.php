@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * Real multi-process concurrency tests. They need a server database (MySQL/MariaDB) because
- * row locking cannot be exercised with in-memory SQLite. Run with: php vendor/bin/phpunit -c phpunit.mysql.xml
+ * Real multi-process concurrency tests. They need a server database (MySQL/MariaDB/PostgreSQL) because
+ * row locking cannot be exercised with in-memory SQLite. Run with phpunit.mysql.xml or phpunit.pgsql.xml.
  */
 class ConcurrencyTest extends TestCase
 {
@@ -22,8 +22,8 @@ class ConcurrencyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        if (! in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
-            $this->markTestSkipped('Concurrency tests require MySQL/MariaDB (use phpunit.mysql.xml).');
+        if (! in_array(DB::getDriverName(), ['mysql', 'mariadb', 'pgsql'], true)) {
+            $this->markTestSkipped('Concurrency tests require MySQL/MariaDB or PostgreSQL (use phpunit.mysql.xml or phpunit.pgsql.xml).');
         }
         $this->installReferenceData();
     }

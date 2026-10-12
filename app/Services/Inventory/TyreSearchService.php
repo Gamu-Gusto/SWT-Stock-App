@@ -111,11 +111,11 @@ class TyreSearchService
             $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term).'%';
             $loadSpeed = preg_match('/^(\d{2,3}(?:\/\d{2,3})?)([A-Z]{1,2})$/i', $term, $ls) ? [$ls[1], strtoupper($ls[2])] : null;
             $q->where(function (Builder $w) use ($like, $term, $loadSpeed) {
-                $w->where('brands.name', 'like', $like)
-                    ->orWhere('products.name', 'like', $like)
-                    ->orWhere('products.sku', 'like', $like)
-                    ->orWhere('products.description', 'like', $like)
-                    ->orWhereHas('tyreModel', fn ($m) => $m->where('name', 'like', $like))
+                $w->whereLike('brands.name', $like)
+                    ->orWhereLike('products.name', $like)
+                    ->orWhereLike('products.sku', $like)
+                    ->orWhereLike('products.description', $like)
+                    ->orWhereHas('tyreModel', fn ($m) => $m->whereLike('name', $like))
                     ->when($loadSpeed, fn ($w) => $w->orWhere(fn ($s) => $s->where('tyre_specs.load_index', $loadSpeed[0])->where('tyre_specs.speed_rating', $loadSpeed[1])))
                     ->orWhereExists(fn ($u) => $u->from('tyre_units')->whereColumn('tyre_units.product_id', 'products.id')->where('tyre_units.unit_code', $term));
             });

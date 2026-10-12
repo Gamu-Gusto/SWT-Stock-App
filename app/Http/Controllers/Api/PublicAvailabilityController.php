@@ -51,7 +51,7 @@ class PublicAvailabilityController extends Controller
             ->when(! empty($q['width']), fn ($x) => $x->where('tyre_specs.width', $q['width']))
             ->when(! empty($q['profile']), fn ($x) => $x->where('tyre_specs.profile', $q['profile']))
             ->when(! empty($q['rim']), fn ($x) => $x->where('tyre_specs.rim', TyreSize::rimText($q['rim'])))
-            ->when(! empty($q['brand']), fn ($x) => $x->where('brands.name', $q['brand']))
+            ->when(! empty($q['brand']), fn ($x) => $x->whereRaw('LOWER(brands.name) = ?', [mb_strtolower($q['brand'])]))
             ->when(! empty($q['condition']), fn ($x) => $x->where('products.condition', $q['condition']))
             ->when(! empty($q['type']), fn ($x) => $x->where('tyre_specs.tyre_type', $q['type']))
             ->whereRaw('products.qty_on_hand > products.qty_reserved')

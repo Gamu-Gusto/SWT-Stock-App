@@ -20,8 +20,8 @@ class ReservationController extends Controller
         $q = Reservation::query()->with(['user:id,name', 'items.product.brand', 'items.product.spec', 'items.product.tyreModel', 'items.unit'])
             ->when(! $user->hasPermission('reservations.view_all'), fn ($q) => $q->where('user_id', $user->id))
             ->when($request->input('status', 'active') !== 'all', fn ($q) => $q->where('status', $request->input('status', 'active')))
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->where('reservation_no', 'like', '%'.$request->string('q').'%')
-                ->orWhere('customer_name', 'like', '%'.$request->string('q').'%')->orWhere('customer_phone', 'like', '%'.$request->string('q').'%')))
+            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->whereLike('reservation_no', '%'.$request->string('q').'%')
+                ->orWhereLike('customer_name', '%'.$request->string('q').'%')->orWhereLike('customer_phone', '%'.$request->string('q').'%')))
             ->orderBy($request->input('status', 'active') === 'active' ? 'expires_at' : 'id', $request->input('status', 'active') === 'active' ? 'asc' : 'desc');
         $page = $q->paginate(25);
         $page->getCollection()->transform(fn ($r) => $this->present($r));

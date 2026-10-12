@@ -97,6 +97,18 @@ class ProductAndSearchTest extends TestCase
         $this->assertNotContains($other->id, $ids('R16'));
     }
 
+    public function test_search_ignores_letter_case_on_every_database(): void
+    {
+        $owner = $this->makeUser();
+        $falken = $this->makeTyre(4, [], $owner);
+
+        $ids = fn (string $q) => collect($this->actingAs($owner)->getJson('/api/v1/products?q='.urlencode($q))->assertOk()->json('data'))->pluck('id')->all();
+
+        $this->assertSame([$falken->id], $ids('falken 205/55r16'));
+        $this->assertSame([$falken->id], $ids('ZIEX'));
+        $this->assertSame([$falken->id], $ids(strtolower($falken->sku)));
+    }
+
     public function test_search_result_shows_quantities_and_status(): void
     {
         $owner = $this->makeUser();

@@ -29,7 +29,7 @@ https://superwheeltyres.co.za is not touched by this application.
 
 ## Technology
 
-- **Backend:** Laravel 13 (PHP 8.3+), REST API, Laravel Sanctum (same-origin session authentication + CSRF), MySQL 8 / MariaDB 10.6+
+- **Backend:** Laravel 13 (PHP 8.3+), REST API, Laravel Sanctum (same-origin session authentication + CSRF), MySQL 8 / MariaDB 10.6+ (PostgreSQL 15+ also supported, e.g. on Render)
 - **Frontend:** Vue 3, TypeScript, Vite, Pinia, Vue Router, Tailwind CSS 4, Lucide icons, Chart.js
 - **Spreadsheets:** PhpSpreadsheet (import and Excel export)
 - **Hosting:** any DirectAdmin (or cPanel/Apache/Nginx) host with PHP 8.3. No Node.js, Redis, Docker or cloud services in production – the frontend is compiled to static files in `public/build`.
@@ -72,6 +72,7 @@ The owner then creates every employee under **Users** (a temporary password is g
 ```bash
 php vendor/bin/phpunit                        # fast suite on in-memory SQLite (concurrency tests skipped)
 php vendor/bin/phpunit -c phpunit.mysql.xml   # full suite on MySQL/MariaDB incl. multi-process concurrency tests
+php vendor/bin/phpunit -c phpunit.pgsql.xml   # same on PostgreSQL
 npx vue-tsc --noEmit                          # frontend type check
 ```
 
@@ -96,6 +97,7 @@ php artisan config:cache && php artisan route:cache && php artisan view:cache
 | Document | For |
 |---|---|
 | [docs/DEPLOYMENT_DIRECTADMIN.md](docs/DEPLOYMENT_DIRECTADMIN.md) | Step-by-step DirectAdmin deployment, with and without SSH |
+| [docs/DEPLOYMENT_RENDER.md](docs/DEPLOYMENT_RENDER.md) | Test deployment on Render (Docker + PostgreSQL, `render.yaml`) |
 | [docs/INSTALLATION.md](docs/INSTALLATION.md) | Local installation and configuration reference |
 | [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) | Owner/administrator setup: users, roles, settings, opening stock |
 | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | Daily use for counter, workshop and stock staff |

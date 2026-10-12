@@ -29,8 +29,8 @@ class SaleController extends Controller
             ->when($request->filled('payment_method'), fn ($q) => $q->where('payment_method', $request->input('payment_method')))
             ->when($request->filled('date_from'), fn ($q) => $q->where('created_at', '>=', $request->date('date_from')->startOfDay()))
             ->when($request->filled('date_to'), fn ($q) => $q->where('created_at', '<=', $request->date('date_to')->endOfDay()))
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->where('sale_no', 'like', '%'.$request->string('q').'%')
-                ->orWhere('customer_name', 'like', '%'.$request->string('q').'%')->orWhere('customer_phone', 'like', '%'.$request->string('q').'%')))
+            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->whereLike('sale_no', '%'.$request->string('q').'%')
+                ->orWhereLike('customer_name', '%'.$request->string('q').'%')->orWhereLike('customer_phone', '%'.$request->string('q').'%')))
             ->orderByDesc('id');
 
         return SaleResource::collection($q->paginate(min($request->integer('per_page', 25) ?: 25, 100)));

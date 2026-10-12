@@ -1,0 +1,115 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: PHP tests (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, mysql, pgsql]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root
+          MYSQL_DATABASE: swt_stock_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -pci-root" --health-interval=5s --health-timeout=5s --health-retries=20
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root
+          POSTGRES_DB: swt_stock_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres" --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, intl, mbstring, pdo_mysql, pdo_pgsql, pdo_sqlite, zip
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Application key
+        run: |
+          echo "APP_KEY=" > .env
+          php artisan key:generate --ansi
+
+      - name: Run tests on SQLite
+        if: matrix.db == 'sqlite'
+        run: php vendor/bin/phpunit
+
+      - name: Run tests on MySQL (incl. concurrency)
+        if: matrix.db == 'mysql'
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USERNAME: root
+          DB_PASSWORD: ci-root
+        run: php vendor/bin/phpunit -c phpunit.mysql.xml
+
+      - name: Run tests on PostgreSQL (incl. concurrency)
+        if: matrix.db == 'pgsql'
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: ci-root
+        run: php vendor/bin/phpunit -c phpunit.pgsql.xml
+
+  frontend:
+    name: Frontend type check and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx vue-tsc --noEmit
+      - run: npm run build
+
+  docker:
+    name: Docker image builds and starts
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root
+          POSTGRES_DB: swt_stock
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t swt-stock .
+      - name: Start container against PostgreSQL and check it serves pages
+        run: |
+          docker run -d --name swt --network host \
+            -e PORT=8080 -e APP_ENV=staging -e APP_DEBUG=false \
+            -e APP_KEY="$(openssl rand -base64 32)" \
+            -e DB_CONNECTION=pgsql -e DB_URL="postgresql://postgres:ci-root@127.0.0.1:5432/swt_stock" \
+            -e SESSION_DRIVER=database -e CACHE_STORE=database -e LOG_CHANNEL=stderr -e TRUSTED_PROXIES="*" \
+            swt-stock
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8080/up && break; sleep 2; done
+          docker logs swt | tail -n 40
+          curl -fsS -o /dev/null -w "login %{http_code}\n" http://127.0.0.1:8080/login
+          curl -fsS http://127.0.0.1:8080/branding
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/.env)" != "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/products)" = "401"

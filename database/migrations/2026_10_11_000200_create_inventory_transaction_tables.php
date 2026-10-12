@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -134,6 +135,19 @@ return new class extends Migration
             $table->string('decision_notes', 500)->nullable();
             $table->timestamps();
         });
+
+        $this->addPostgresChecks();
+    }
+
+    /** Called at the end of up(). */
+    protected function addPostgresChecks(): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+        // PostgreSQL has no UNSIGNED integers: enforce non-negative quantities explicitly.
+        DB::statement('ALTER TABLE stock_lots ADD CONSTRAINT chk_stock_lots_nonnegative CHECK (qty_remaining >= 0 AND qty_remaining <= qty_received)');
+        DB::statement('ALTER TABLE stock_movements ADD CONSTRAINT chk_stock_movements_nonnegative CHECK (previous_qty >= 0 AND resulting_qty >= 0)');
     }
 
     public function down(): void

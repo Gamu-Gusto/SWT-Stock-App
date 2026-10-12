@@ -17,6 +17,7 @@ Read `README.md` and `docs/INVENTORY_RULES.md` before changing anything stock-re
 
 ## Commands
 
-- Tests: `php vendor/bin/phpunit` (SQLite) and `php vendor/bin/phpunit -c phpunit.mysql.xml` (MySQL, incl. concurrency).
+- Tests: `php vendor/bin/phpunit` (SQLite), `-c phpunit.mysql.xml` (MySQL) and `-c phpunit.pgsql.xml` (PostgreSQL); CI runs all three.
+- SQL must work on MySQL/MariaDB **and** PostgreSQL: no backticks, use `whereLike` for searches, case-insensitive name lookups.
 - Frontend: `npm run dev`, `npm run build`, `npx vue-tsc --noEmit`.
 - Code style: `php vendor/bin/pint`.

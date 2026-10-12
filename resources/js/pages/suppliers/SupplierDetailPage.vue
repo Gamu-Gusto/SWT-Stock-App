@@ -90,7 +90,7 @@ async function toggleArchive() {
                 <table class="data-table">
                     <thead><tr><th>Tyre</th><th>Size</th><th>Condition</th><th class="num">Quantity</th><th>Last delivery</th><th v-if="auth.can('financials.view')" class="num">Last cost</th></tr></thead>
                     <tbody>
-                        <tr v-for="p in s.products" :key="p.id"><td><RouterLink :to="`/inventory/${p.id}`" class="font-semibold hover:underline">{{ p.brand }} {{ p.model }}</RouterLink></td><td>{{ p.size }}</td><td>{{ p.condition }}</td><td class="num">{{ p.qty }}</td><td>{{ formatDate(p.last_delivery) }}</td><td v-if="auth.can('financials.view')" class="num">{{ formatMoney(p.last_unit_cost) }}</td></tr>
+                        <tr v-for="p in s.products" :key="p.id"><td><RouterLink :to="`/inventory/${p.id}`" class="font-semibold hover:underline">{{ p.brand }} {{ p.model }}</RouterLink></td><td>{{ p.size }}</td><td>{{ p.item_condition }}</td><td class="num">{{ p.qty }}</td><td>{{ formatDate(p.last_delivery) }}</td><td v-if="auth.can('financials.view')" class="num">{{ formatMoney(p.last_unit_cost) }}</td></tr>
                         <tr v-if="!s.products.length"><td colspan="6" class="py-6 text-center text-muted">Nothing received yet.</td></tr>
                     </tbody>
                 </table>

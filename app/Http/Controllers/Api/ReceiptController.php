@@ -23,8 +23,8 @@ class ReceiptController extends Controller
             ->when($request->filled('supplier_id'), fn ($q) => $q->where('supplier_id', $request->integer('supplier_id')))
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('delivery_date', '>=', $request->date('date_from')))
             ->when($request->filled('date_to'), fn ($q) => $q->whereDate('delivery_date', '<=', $request->date('date_to')))
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->where('receipt_no', 'like', '%'.$request->string('q').'%')
-                ->orWhere('supplier_reference', 'like', '%'.$request->string('q').'%')))
+            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->whereLike('receipt_no', '%'.$request->string('q').'%')
+                ->orWhereLike('supplier_reference', '%'.$request->string('q').'%')))
             ->orderByDesc('id');
         $page = $q->paginate(min($request->integer('per_page', 25) ?: 25, 100));
         $showCost = $this->showCost($request);

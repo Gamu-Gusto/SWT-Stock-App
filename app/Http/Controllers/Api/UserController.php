@@ -21,7 +21,7 @@ class UserController extends Controller
     public function index(Request $request): JsonResponse
     {
         $q = User::query()->with('role:id,name,label')
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', '%'.$request->string('q').'%')->orWhere('email', 'like', '%'.$request->string('q').'%')))
+            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->whereLike('name', '%'.$request->string('q').'%')->orWhereLike('email', '%'.$request->string('q').'%')))
             ->when($request->filled('role_id'), fn ($q) => $q->where('role_id', $request->integer('role_id')))
             ->when($request->filled('active'), fn ($q) => $q->where('is_active', $request->boolean('active')))
             ->orderByDesc('is_active')->orderBy('name');

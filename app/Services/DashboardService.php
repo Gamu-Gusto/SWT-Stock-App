@@ -143,7 +143,7 @@ class DashboardService
     protected function newVsUsed(): array
     {
         return DB::table('products')->where('status', 'active')
-            ->selectRaw('`condition` as label, SUM(qty_on_hand + qty_unsellable) as physical')->groupBy('condition')->get()
+            ->selectRaw('products.condition as label, SUM(qty_on_hand + qty_unsellable) as physical')->groupBy('products.condition')->get()
             ->map(fn ($r) => ['label' => ucfirst($r->label), 'physical' => (int) $r->physical])->all();
     }
 

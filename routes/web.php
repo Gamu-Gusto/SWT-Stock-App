@@ -14,4 +14,5 @@ Route::get('/branding/logo', [BrandingController::class, 'logo']);
 Route::view('/reset-password/{token}', 'app')->name('password.reset');
 
 // Single-page application: every other path renders the Vue app (authentication is enforced by the API).
-Route::view('/{any?}', 'app')->where('any', '^(?!api/|build/|setup|branding|up$).*$');
+// Paths starting with a dot (/.env, /.git/…) are never routed to the app.
+Route::view('/{any?}', 'app')->where('any', '^(?!api/|build/|setup|branding|up$|\.).*$');

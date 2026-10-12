@@ -19,7 +19,8 @@ class SaleReturn extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(SaleReturnItem::class);
+        // Explicit order: PostgreSQL does not return rows in insertion order.
+        return $this->hasMany(SaleReturnItem::class)->orderBy('sale_return_items.id');
     }
 
     public function creator(): BelongsTo

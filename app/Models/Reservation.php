@@ -22,7 +22,8 @@ class Reservation extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(ReservationItem::class);
+        // Explicit order: PostgreSQL does not return rows in insertion order.
+        return $this->hasMany(ReservationItem::class)->orderBy('reservation_items.id');
     }
 
     public function user(): BelongsTo

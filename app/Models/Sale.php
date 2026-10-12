@@ -43,7 +43,8 @@ class Sale extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(SaleItem::class);
+        // Explicit order: PostgreSQL does not return rows in insertion order.
+        return $this->hasMany(SaleItem::class)->orderBy('sale_items.id');
     }
 
     public function returns(): HasMany

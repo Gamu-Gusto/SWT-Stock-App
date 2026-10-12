@@ -27,7 +27,8 @@ class Quotation extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(QuotationItem::class);
+        // Explicit order: PostgreSQL does not return rows in insertion order.
+        return $this->hasMany(QuotationItem::class)->orderBy('quotation_items.id');
     }
 
     public function user(): BelongsTo

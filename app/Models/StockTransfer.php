@@ -12,7 +12,8 @@ class StockTransfer extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(StockTransferItem::class);
+        // Explicit order: PostgreSQL does not return rows in insertion order.
+        return $this->hasMany(StockTransferItem::class)->orderBy('stock_transfer_items.id');
     }
 
     public function fromLocation(): BelongsTo

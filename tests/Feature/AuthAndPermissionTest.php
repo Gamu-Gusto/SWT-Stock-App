@@ -155,7 +155,6 @@ class AuthAndPermissionTest extends TestCase
         $this->makeUser(Role::SALES, ['email' => 'audit@swt.test']);
         $this->postJson('/api/v1/auth/login', ['email' => 'audit@swt.test', 'password' => 'Password123'])->assertOk();
 
-        $this->assertDatabaseMissing('activity_logs', ['new_values' => '%Password123%']);
         foreach (ActivityLog::all() as $log) {
             $this->assertStringNotContainsString('Password123', json_encode($log->toArray()));
         }

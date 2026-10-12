@@ -51,7 +51,7 @@ class StocktakeItem extends Model
 
     public function counts(): HasMany
     {
-        return $this->hasMany(StocktakeCount::class);
+        return $this->hasMany(StocktakeCount::class)->orderBy('stocktake_counts.id');
     }
 
     public static function lineKey(int $productId, int $locationId, ?int $unitId = null): string

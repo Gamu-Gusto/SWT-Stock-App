@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Refuse hidden paths (e.g. /.env, /.git) before anything else – they are never part of the app.
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -28,10 +31,6 @@
 # --- Super Wheels and Tyres additions ---
 AddType application/manifest+json .webmanifest
 
-# Never serve hidden files (e.g. .env, .git) even if they end up in the web root by mistake.
-<IfModule mod_rewrite.c>
-    RewriteRule (^|/)\.(?!well-known/) - [F,L]
-</IfModule>
 
 # The service worker must not be cached long, so updates reach devices quickly.
 <IfModule mod_headers.c>

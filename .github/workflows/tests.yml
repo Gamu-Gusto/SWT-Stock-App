@@ -115,7 +115,8 @@ jobs:
           docker logs swt | tail -n 40
           curl -fsS -o /dev/null -w "login %{http_code}\n" http://127.0.0.1:8080/login
           curl -fsS http://127.0.0.1:8080/branding
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/.env)" != "200"
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/.env); echo ".env -> $code"; test "$code" = "403" -o "$code" = "404"
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/composer.json); echo "composer.json -> $code"; test "$code" = "404"
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/products)" = "401"
 
       - name: Report container log
